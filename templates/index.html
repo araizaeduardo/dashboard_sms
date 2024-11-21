@@ -1,0 +1,194 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Comunicaciones</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="flex h-screen bg-gray-100">
+        <!-- Navegador izquierdo -->
+        <div class="w-64 bg-white shadow-lg">
+            <nav class="mt-5">
+                <button onclick="showContent('sms')" class="flex items-center w-full px-4 py-2 text-gray-700 hover:bg-gray-200">
+                    <i class="fas fa-sms mr-3"></i> SMS
+                </button>
+                <button onclick="showContent('whatsapp')" class="flex items-center w-full px-4 py-2 text-gray-700 hover:bg-gray-200">
+                    <i class="fab fa-whatsapp mr-3"></i> WhatsApp
+                </button>
+                <button onclick="showContent('facebook')" class="flex items-center w-full px-4 py-2 text-gray-700 hover:bg-gray-200">
+                    <i class="fab fa-facebook mr-3"></i> Facebook
+                </button>
+                <button onclick="showContent('email')" class="flex items-center w-full px-4 py-2 text-gray-700 hover:bg-gray-200">
+                    <i class="fas fa-envelope mr-3"></i> Emails
+                </button>
+                <button onclick="showContent('calls')" class="flex items-center w-full px-4 py-2 text-gray-700 hover:bg-gray-200">
+                    <i class="fas fa-phone mr-3"></i> Llamadas
+                </button>
+            </nav>
+            
+            <!-- Teléfono digital -->
+            <div class="mt-8 px-4">
+                <!-- Display del número -->
+                <div class="bg-white p-2 rounded-lg shadow mb-4">
+                    <input type="text" id="phoneDisplay" class="w-full text-lg font-semibold text-center" 
+                           placeholder="Ingrese número..." readonly>
+                </div>
+
+                <!-- Teclado -->
+                <div class="bg-gray-200 p-4 rounded-lg">
+                    <div class="grid grid-cols-3 gap-2">
+                        <button onclick="appendNumber('1')" class="dial-button">1</button>
+                        <button onclick="appendNumber('2')" class="dial-button">2</button>
+                        <button onclick="appendNumber('3')" class="dial-button">3</button>
+                        <button onclick="appendNumber('4')" class="dial-button">4</button>
+                        <button onclick="appendNumber('5')" class="dial-button">5</button>
+                        <button onclick="appendNumber('6')" class="dial-button">6</button>
+                        <button onclick="appendNumber('7')" class="dial-button">7</button>
+                        <button onclick="appendNumber('8')" class="dial-button">8</button>
+                        <button onclick="appendNumber('9')" class="dial-button">9</button>
+                        <button onclick="appendNumber('*')" class="dial-button">*</button>
+                        <button onclick="appendNumber('0')" class="dial-button">0</button>
+                        <button onclick="appendNumber('#')" class="dial-button">#</button>
+                    </div>
+                </div>
+                
+                <!-- Botones de acción -->
+                <div class="grid grid-cols-3 gap-2 mt-4">
+                    <button onclick="handleCall('forward')" class="action-button bg-blue-500">
+                        <i class="fas fa-forward"></i>
+                    </button>
+                    <button onclick="handleCall('mute')" class="action-button bg-yellow-500">
+                        <i class="fas fa-microphone-slash"></i>
+                    </button>
+                    <button onclick="handleCall('hangout')" class="action-button bg-red-500">
+                        <i class="fas fa-phone-slash"></i>
+                    </button>
+                    <button onclick="handleCall('answer')" class="action-button bg-green-500">
+                        <i class="fas fa-phone"></i>
+                    </button>
+                    <button onclick="handleCall('hold')" class="action-button bg-purple-500">
+                        <i class="fas fa-pause"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Área principal -->
+        <div id="mainContent" class="flex-1 p-10">
+            <p>Selecciona una opción del menú de la izquierda</p>
+        </div>
+    </div>
+
+    <style>
+        .dial-button {
+            @apply bg-white rounded-full h-8 w-8 flex items-center justify-center text-sm font-semibold shadow hover:bg-gray-100;
+        }
+        .action-button {
+            @apply text-white rounded-lg p-2 w-full hover:opacity-90;
+        }
+    </style>
+
+    <script>
+        let currentNumber = '';
+        
+        function appendNumber(num) {
+            currentNumber += num;
+            document.getElementById('phoneDisplay').value = currentNumber;
+        }
+
+        function showContent(type) {
+            fetch(`/get_messages/${type}`)
+                .then(response => response.json())
+                .then(messages => {
+                    let content = `
+                        <h2 class="text-2xl font-bold mb-4">Mensajes de ${type}</h2>
+                        <div class="bg-white p-4 rounded-lg shadow">
+                    `;
+                    
+                    messages.forEach(msg => {
+                        content += `
+                            <div class="mb-2">
+                                <strong>${msg.from}:</strong> ${msg.text}
+                                <small class="text-gray-500">${msg.date}</small>
+                            </div>
+                        `;
+                    });
+                    
+                    content += `
+                        </div>
+                        <div class="mt-4">
+                            <textarea class="w-full p-2 border rounded-lg" rows="4" 
+                                    placeholder="Responder mensaje..."></textarea>
+                            <button onclick="sendMessage('${type}')" 
+                                    class="mt-2 bg-blue-500 text-white px-4 py-2 rounded-lg">
+                                Enviar
+                            </button>
+                        </div>
+                    `;
+                    
+                    document.getElementById('mainContent').innerHTML = content;
+                });
+        }
+
+        function handleCall(action) {
+            const number = document.getElementById('phoneDisplay').value;
+            if (!number) {
+                alert('Por favor ingrese un número');
+                return;
+            }
+
+            fetch('/call', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    action: action,
+                    number: number
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'error') {
+                    alert(data.message || 'Error al procesar la llamada');
+                }
+            });
+        }
+
+        function sendMessage(type) {
+            const text = document.querySelector('textarea').value;
+            const number = document.getElementById('phoneDisplay').value;
+            
+            if (!text || !number) {
+                alert('Por favor ingrese un mensaje y un número');
+                return;
+            }
+
+            fetch('/send_message', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    type: type,
+                    text: text,
+                    to: number
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    showContent(type);
+                    document.querySelector('textarea').value = '';
+                } else {
+                    alert('Error al enviar el mensaje');
+                }
+            });
+        }
+    </script>
+</body>
+</html>
